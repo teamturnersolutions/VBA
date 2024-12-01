@@ -1,0 +1,100 @@
+' Define the function FormatShift within the same module
+Function FormatShift(shift As String) As String
+    Select Case Trim(UCase(shift))
+        Case "1ST", "1ST "
+            FormatShift = "1st"
+        Case "2ND", "2ND "
+            FormatShift = "2nd"
+        Case "3RD", "3RD "
+            FormatShift = "3rd"
+        Case "4TH", "4TH "
+            FormatShift = "4th"
+        Case Else
+            FormatShift = shift ' Keep original if no match
+    End Select
+End Function
+
+' Main subroutine
+Sub MasterStaffingReportStage1()
+    Dim wsBJS As Worksheet, wsLGS As Worksheet, wsMaster As Worksheet
+    Dim LastRowBJS As Long, LastRowLGS As Long, LastRowMaster As Long
+    Dim i As Long
+    Dim deptMapping As Object
+    
+    ' Create the mapping dictionary
+    Set deptMapping = CreateObject("Scripting.Dictionary")
+    
+    ' Department mappings
+    deptMapping.Add "DC Laydown", "DC PTC"
+    deptMapping.Add "Tiers", "DC PTC"
+    deptMapping.Add "Breakdown", "DC PTC"
+    deptMapping.Add "Laydown", "DC PTC"
+    deptMapping.Add "PTC Laydown", "DC PTC"
+    deptMapping.Add "DC Cross Dock", "DC Cross Dock & Shipping"
+    deptMapping.Add "Crossdock", "DC Cross Dock & Shipping"
+    deptMapping.Add "DC Ship/Security", "DC SCC"
+    deptMapping.Add "Security", "DC SCC"
+    deptMapping.Add "DC-E-COMM", "DC E-COMM"
+    deptMapping.Add "Maintenance", "DC Maintenance"
+    deptMapping.Add "Pallet Land", "DC Pallet Department"
+    deptMapping.Add "Palletland", "DC Pallet Department"
+    deptMapping.Add "Dc Qc/Lp", "DC QC/LP"
+    deptMapping.Add "QC", "DC QC/LP"
+    deptMapping.Add "Storage", "DC Storage"
+    deptMapping.Add "Truck Audit", "DC Yard Jockey"
+    deptMapping.Add "Receiving", "DC Receiving"
+    
+    ' Define worksheets
+    Set wsBJS = ThisWorkbook.Sheets(Trim("BJS TMS"))
+    Set wsLGS = ThisWorkbook.Sheets("LGS")
+    Set wsMaster = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+    wsMaster.Name = "Master Staffing Report"
+    
+    ' Add headers to the master sheet
+    wsMaster.Range("A1:I1").Value = Array("ID", "Name", "Job Title", "Dept", "Shift", "Supervisor/Manager", "Location", "LOA", "Comments")
+    
+    ' Last row in the master sheet
+    LastRowMaster = 1
+    
+    ' Loop through BJS TMS sheet
+    LastRowBJS = wsBJS.Cells(wsBJS.Rows.Count, 1).End(xlUp).Row
+    For i = 2 To LastRowBJS
+        LastRowMaster = LastRowMaster + 1
+        wsMaster.Cells(LastRowMaster, 1).Value = wsBJS.Cells(i, 1).Value ' ID
+        wsMaster.Cells(LastRowMaster, 2).Value = wsBJS.Cells(i, 2).Value ' Name
+        wsMaster.Cells(LastRowMaster, 3).Value = wsBJS.Cells(i, 3).Value ' Job Title
+        wsMaster.Cells(LastRowMaster, 5).Value = FormatShift(wsBJS.Cells(i, 5).Value) ' Clean Shift
+        wsMaster.Cells(LastRowMaster, 6).Value = wsBJS.Cells(i, 6).Value ' Supervisor/Manager
+        wsMaster.Cells(LastRowMaster, 7).Value = wsBJS.Cells(i, 7).Value ' Location
+        wsMaster.Cells(LastRowMaster, 8).Value = wsBJS.Cells(i, 8).Value ' LOA
+        wsMaster.Cells(LastRowMaster, 9).Value = "TM" ' Set Comments to "TM" for BJS-TMS records
+
+        ' Apply department mapping
+        If deptMapping.Exists(wsBJS.Cells(i, 4).Value) Then
+            wsMaster.Cells(LastRowMaster, 4).Value = deptMapping(wsBJS.Cells(i, 4).Value)
+        Else
+            wsMaster.Cells(LastRowMaster, 4).Value = wsBJS.Cells(i, 4).Value ' Use original value if no mapping
+        End If
+    Next i
+    
+    ' Loop through LGS sheet
+    LastRowLGS = wsLGS.Cells(wsLGS.Rows.Count, 1).End(xlUp).Row
+    For i = 2 To LastRowLGS
+        LastRowMaster = LastRowMaster + 1
+        wsMaster.Cells(LastRowMaster, 1).Value = wsLGS.Cells(i, 1).Value ' ID
+        wsMaster.Cells(LastRowMaster, 2).Value = wsLGS.Cells(i, 2).Value ' Name
+        wsMaster.Cells(LastRowMaster, 3).Value = wsLGS.Cells(i, 4).Value ' Job Title
+        wsMaster.Cells(LastRowMaster, 5).Value = FormatShift(wsLGS.Cells(i, 3).Value) ' Clean Shift
+        wsMaster.Cells(LastRowMaster, 6).Value = "N/A" ' Supervisor/Manager (not available in LGS)
+        wsMaster.Cells(LastRowMaster, 7).Value = "N/A" ' Location (not available in LGS)
+        wsMaster.Cells(LastRowMaster, 8).Value = "N/A" ' LOA (not available in LGS)
+        wsMaster.Cells(LastRowMaster, 9).Value = "TEMP" ' Set Comments to "TEMP" for LGS records
+
+        ' Apply department mapping
+        If deptMapping.Exists(wsLGS.Cells(i, 5).Value) Then
+            wsMaster.Cells(LastRowMaster, 4).Value = deptMapping(wsLGS.Cells(i, 5).Value)
+        Else
+            wsMaster.Cells(LastRowMaster, 4).Value = wsLGS.Cells(i, 5).Value ' Use original value if no mapping
+        End If
+    Next i
+End Sub
