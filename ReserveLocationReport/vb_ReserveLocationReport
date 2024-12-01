@@ -1,0 +1,39 @@
+Sub ReserveLocationReport()
+    Dim ws As Worksheet
+    Dim tbl As ListObject
+    Dim lastRow As Long
+    Dim shp As Shape
+
+    Set ws = ActiveSheet ' Use the currently active worksheet
+
+    ' Delete rows 1 to 18
+    ws.Rows("1:18").Delete
+
+    ' Delete columns G to O
+    ws.Columns("G:O").Delete
+
+    ' Unmerge cells in columns G and H
+    ws.Columns("G:H").UnMerge
+
+    ' Add new columns Helper1 and Helper2
+    ws.Cells(1, "G").Value = "Helper1" ' Column G
+    ws.Cells(1, "H").Value = "Helper2" ' Column H
+
+    ' Delete the image if it exists
+    On Error Resume Next ' Ignore errors if the shape is not found
+    ws.Shapes("RSXls2007_missing.gif").Delete
+    On Error GoTo 0 ' Resume normal error handling
+
+    ' Find the last row in column A
+    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+
+    ' Convert the range A1:H(lastRow) into a table
+    Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:H" & lastRow), , xlYes)
+    tbl.Name = "DataTable" ' Optionally set a name for the table
+    tbl.TableStyle = "TableStyleMedium9" ' Optional: set a table style
+
+    ' Apply structured table formulas to columns G and H (Helper1 and Helper2)
+    tbl.ListColumns("Helper1").DataBodyRange.Formula = "=RIGHT([@Location],2)"
+    tbl.ListColumns("Helper2").DataBodyRange.Formula = "=LEFT([@Location],3) & RIGHT([@Location],3) & MID([@Location],4,1)"
+End Sub
+
