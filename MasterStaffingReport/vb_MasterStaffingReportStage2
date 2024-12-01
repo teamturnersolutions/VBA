@@ -1,0 +1,55 @@
+Sub MasterStaffingReportStage2()
+    Dim ws As Worksheet
+    Dim ptCache As PivotCache
+    Dim pt1 As PivotTable
+    Dim pt2 As PivotTable
+    Dim dataRange As String
+    Dim destinationSheet As String
+    Dim startRow As Long
+
+    ' Set the worksheet and data range
+    Set ws = ThisWorkbook.Sheets("Master Staffing Report")
+    dataRange = "A1:I500" ' Update to your data range
+    destinationSheet = "Master Staffing Report"
+    startRow = 5
+
+    ' Create the pivot cache from the specified range
+    Set ptCache = ThisWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=ws.Range(dataRange), Version:=8)
+
+    ' Create the first pivot table
+    Set pt1 = ptCache.CreatePivotTable(TableDestination:=ws.Cells(startRow, 14), tableName:="PivotTable12", DefaultVersion:=8)
+
+    ' Configure the first pivot table
+    With pt1
+        .ColumnGrand = True
+        .RowGrand = True
+        .PreserveFormatting = True
+        .RepeatAllLabels xlRepeatLabels
+        .PivotFields("Dept").Orientation = xlRowField
+        .PivotFields("Dept").Position = 1
+        .AddDataField .PivotFields("Name"), "Count of Name", xlCount
+        .PivotFields("Comments").Orientation = xlColumnField
+        .PivotFields("Comments").Position = 1
+    End With
+
+    ' Create the second pivot table
+    Set pt2 = ptCache.CreatePivotTable(TableDestination:=ws.Cells(startRow, 19), tableName:="PivotTable13", DefaultVersion:=8)
+
+    ' Configure the second pivot table
+    With pt2
+        .ColumnGrand = True
+        .RowGrand = True
+        .PreserveFormatting = True
+        .RepeatAllLabels xlRepeatLabels
+        .PivotFields("Shift").Orientation = xlRowField
+        .PivotFields("Shift").Position = 1
+        .AddDataField .PivotFields("Name"), "Count of Name", xlCount
+        .PivotFields("Comments").Orientation = xlColumnField
+        .PivotFields("Comments").Position = 1
+    End With
+
+    ' Refresh both pivot tables
+    pt1.RefreshTable
+    pt2.RefreshTable
+End Sub
+
