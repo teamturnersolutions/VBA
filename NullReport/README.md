@@ -1,5 +1,9 @@
 # Null Summary Report Automation
 This project automates the processing and reporting of inventory data using VBA macros in Microsoft Excel. The workflow is designed to clean, filter, and transfer data between workbooks, providing an efficient solution for managing inventory discrepancies and ensuring accurate reporting.
+## Overview
+* Stage 1: Main Stage, can be run on Null Locations LPNs Workbook individually. Will produce desired report with minmial effort. Note, No row deletion performed. Just SHIFT & DEPT formulated, must adjust target cells accordingly.
+* Stage 2: Data Removal Stage, removes Rising Son records (582) from the report.
+* Stage 3: Data Transfer Stage, performs a data transfer to a developed workbook, as well as adds a styling component.
 
 ## Features
 ### Data Cleanup:
