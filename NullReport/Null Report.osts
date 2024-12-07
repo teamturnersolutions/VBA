@@ -1,0 +1,92 @@
+function main(workbook: ExcelScript.Workbook) {
+    const ws = workbook.getActiveWorksheet();
+
+    // 1. Delete worksheet named "LPN_Level_Data_1" if it exists
+    let sheet = workbook.getWorksheet("LPN_Level_Data_1");
+    if (sheet) {
+        sheet.delete();
+    }
+
+    // 2. Delete rows 1:5
+    ws.getRange("1:5").delete(ExcelScript.DeleteShiftDirection.up);
+
+    // 3. Delete column B
+    ws.getRange("B:B").delete(ExcelScript.DeleteShiftDirection.left);
+
+    // 4. Delete column C
+    ws.getRange("C:C").delete(ExcelScript.DeleteShiftDirection.left);
+
+    // 5. Delete columns I:J
+    ws.getRange("I:J").delete(ExcelScript.DeleteShiftDirection.left);
+
+    // 6. Delete column J
+    ws.getRange("J:J").delete(ExcelScript.DeleteShiftDirection.left);
+
+    // 7. Add 2 columns between C and D
+    ws.getRange("D:D").insert(ExcelScript.InsertShiftDirection.right);
+    ws.getRange("D:D").insert(ExcelScript.InsertShiftDirection.right);
+
+    // 8. Name the new columns with "NULL" + current date
+    const currentDate = new Date().toISOString().split('T')[0]; // Current date in yyyy-mm-dd format
+    ws.getCell(0, 3).setValue("NULL " + currentDate);
+    ws.getCell(0, 4).setValue("NULL " + currentDate);
+
+    // 9. Set the column headers according to the new layout
+    const headers: string[] = [
+        "WHSE", "LPN", "LPN_STATUS", "SHIFT", "DEPT", "LAST_TOUCHED", "LAST_TRANSACTION",
+        "LAST_USER", "CREATED_DTTM", "CLUB", "PREV_LOCN", "PO", "ARTICLE", "IDESCR", "QTY"
+    ];
+    for (let i = 0; i < headers.length; i++) {
+        ws.getCell(0, i).setValue(headers[i]);
+    }
+
+    // 10. Apply formula to column D "SHIFT" using column F "LAST_TOUCHED"
+    let lastRow: number = ws.getRange("A:A").getUsedRange().getRowCount();
+    let shiftFormula: string = `=IF(ISBLANK(F2), "UNKNOWN", IF(AND(WEEKDAY(F2, 2) >= 1, WEEKDAY(F2, 2) <= 5, MOD(F2, 1) >= TIME(4, 0, 0), MOD(F2, 1) < TIME(16, 0, 0)), "1ST", IF(AND(WEEKDAY(F2, 2) >= 1, WEEKDAY(F2, 2) <= 5), "2ND", IF(AND(WEEKDAY(F2, 2) >= 6, WEEKDAY(F2, 2) <= 7, MOD(F2, 1) >= TIME(4, 0, 0), MOD(F2, 1) < TIME(16, 0, 0)), "3RD", "4TH"))))`;
+    ws.getRange(`D2:D${lastRow}`).setFormula(shiftFormula);
+
+    // 11. Apply formula to column E "DEPT" using column G "LAST_TRANSACTION"
+    let deptFormula: string = `=SWITCH(G2, "LPN Disposition     *", "PTC", "Pck Cubed Dir     *", "STG", "Ptwy iLPN     *", "STG", "Ptwy User Non EX01     *", "STG", "Recv By ASN     *", "REC", "Recv By ASN Shuttle*", "REC", "Recv Floor     *", "REC", "Recv Mass - Single Sku     *", "REC", "Unload LPN     *", "SHP", "PTC")`;
+    ws.getRange(`E2:E${lastRow}`).setFormula(deptFormula);
+
+    // 12. Rename the current worksheet to include "NULL" and the current date
+    ws.setName("NULL " + currentDate);
+
+    // 13. Now delete rows where column A has value "582"
+    const rowsToDelete: number[] = []; // Declare as an array of numbers to store the row indices
+    for (let i = 1; i < lastRow; i++) {
+        if (ws.getCell(i, 0).getValue() === 582) { // If column A has value 582
+            rowsToDelete.push(i + 1); // Store the row index to delete
+        }
+    }
+
+    // Delete rows starting from the last one to avoid shifting issues
+    rowsToDelete.reverse().forEach((row: number) => {
+        ws.getRange(`A${row}:Q${row}`).delete(ExcelScript.DeleteShiftDirection.up);
+    });
+
+    // 14. Prepare an array for the color values
+    const shiftColors: { [key: string]: string } = { // Explicitly typing as a dictionary of strings
+        "1ST": "#FCE4D6",  // Light Orange
+        "2ND": "#FFF2CC",  // Light Yellow
+        "3RD": "#DDEBF7",  // Light Blue
+        "4TH": "#E2EFDA",  // Light Green
+        "UNKNOWN": "#FFFFFF" // White for unknown shifts
+    };
+
+    // 15. Create an array to hold the fill colors for each row (only columns A to Q)
+    let fillColors: { row: number, color: string }[] = []; // Declare as an array of objects with row and color properties
+    for (let i = 1; i < lastRow; i++) {
+        let shiftValue: string = ws.getCell(i, 3).getValue(); // Get the value from column D (SHIFT)
+        let color: string = shiftColors[shiftValue] || shiftColors["UNKNOWN"]; // Default to "UNKNOWN" color if shift is missing
+        fillColors.push({ row: i + 1, color: color }); // Store row and color for later batch processing
+    }
+
+    // 16. Apply colors to rows in columns A to Q
+    let range = ws.getRange("A2:O" + lastRow);  // Select columns A to Q
+    for (let i = 0; i < fillColors.length; i++) {
+        let row: number = fillColors[i].row;
+        let color: string = fillColors[i].color;
+        ws.getRange(`A${row}:O${row}`).getFormat().getFill().setColor(color); // Apply color to entire row
+    }
+}
