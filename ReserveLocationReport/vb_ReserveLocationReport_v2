@@ -1,0 +1,91 @@
+Sub ReserveLocationReport6()
+    Dim ws As Worksheet
+    Dim tbl As ListObject
+    Dim lastRow As Long
+    Dim i As Long
+    Dim helper1Value As Variant
+    Dim helper3Value As Variant
+
+    ' Set the active worksheet
+    Set ws = ActiveSheet
+
+    ' Turn off screen updating for performance
+    Application.ScreenUpdating = False
+
+    ' Delete rows 1 to 18
+    ws.Rows("1:18").Delete
+
+    ' Delete columns G to O
+    ws.Columns("G:O").Delete
+
+    ' Unmerge cells in columns G and H
+    ws.Columns("G:H").UnMerge
+
+    ' Add new columns Helper1, Helper2, and Helper3
+    ws.Cells(1, "G").Value = "Helper1" ' Column G
+    ws.Cells(1, "H").Value = "Helper2" ' Column H
+    ws.Cells(1, "I").Value = "Helper3" ' Column I
+
+    ' Delete the image if it exists
+    On Error Resume Next
+    ws.Shapes("RSXls2007_missing.gif").Delete
+    On Error GoTo 0
+
+    ' Find the last row in column A
+    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+
+    ' Convert the range A1:I(lastRow) into a table
+    Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:I" & lastRow), , xlYes)
+    tbl.Name = "DataTable" ' Optionally set a name for the table
+    tbl.TableStyle = "TableStyleMedium9" ' Optional: set a table style
+
+    ' Apply structured table formulas to columns G, H, and I
+    tbl.ListColumns("Helper1").DataBodyRange.Formula = "=RIGHT([@Location],2)"
+    tbl.ListColumns("Helper2").DataBodyRange.Formula = "=LEFT([@Location],3) & RIGHT([@Location],3) & MID([@Location],4,1)"
+    tbl.ListColumns("Helper3").DataBodyRange.Formula = "=LEFT([@Helper2],3)" ' Extract first 3 digits
+
+    ' Loop through rows in reverse to delete rows based on criteria
+    For i = lastRow To 2 Step -1 ' Loop backward to prevent row shifting
+        helper1Value = ws.Cells(i, "G").Value
+        helper3Value = ws.Cells(i, "I").Value
+
+        ' Check Helper1 (column G) for values 37 and above
+        If IsNumeric(helper1Value) And helper1Value >= 37 Then
+            ws.Rows(i).Delete
+            GoTo NextRow ' Skip further checks for this row
+        End If
+
+        ' Check Helper3 (column I) for values 055 and above
+        If IsNumeric(helper3Value) And helper3Value >= 55 Then
+            ws.Rows(i).Delete
+            GoTo NextRow ' Skip further checks for this row
+        End If
+
+        ' Check Helper3 (column I) for values starting with S, P, C, F, or #
+        If Left(helper3Value, 1) Like "[SPCF#]" Then
+            ws.Rows(i).Delete
+            GoTo NextRow ' Skip further checks for this row
+        End If
+
+        ' Check Helper1 (column G) for values ending with L, O, R, S, T, X, Y
+        If Not IsEmpty(helper1Value) Then
+            If Right(helper1Value, 1) Like "[LORSTXY]" Then
+                ws.Rows(i).Delete
+                GoTo NextRow ' Skip further checks for this row
+            End If
+        End If
+
+        ' Check Helper1 (column G) for values starting with S
+        If Not IsEmpty(helper1Value) Then
+            If Left(helper1Value, 1) = "S" Then
+                ws.Rows(i).Delete
+            End If
+        End If
+
+NextRow:
+    Next i
+
+    ' Turn on screen updating
+    Application.ScreenUpdating = True
+End Sub
+
